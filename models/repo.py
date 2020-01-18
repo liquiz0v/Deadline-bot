@@ -20,17 +20,28 @@ Example of usage:
 """
 
 class Repo:
-    def __init__(self, link : str, port : int, db_name : str): #Пока данные захардкодил, хотя наверное можно подставлять (не проверял)
+    def __init__(
+        self, 
+        link : str, 
+        port: int=27017, 
+        db_name : str="Deadline-bot"): #Пока данные захардкодил, хотя наверное можно подставлять (не проверял)
         self.port = port
-        self.client = MongoClient("localhost:27017") #Адрес сервера бд
+        self.client = MongoClient("localhost", port)
 
-        self.db = self.client["Deadline-bot"] #Название базы
+        self.db = self.client[db_name] 
+        self.users = self.db["Users"]
+        self.tasks = self.db["Tasks"]
+        self.card_lists = self.db["Cardlists"]
+
 
     def create(self, u : object): #Нужно как то переделать (работает) создает любой обьект в базе
         arg1 = str(u).find("<")
         arg2 = str(u).find(".")
         collection = self.db[str(u)[arg1 + 1:arg2] + "s"]
         collection.insert_one(u.__dict__)
+
+    def add_user(self, user: User):
+        self.users.insert_one(user.__dict__)
 
     def update(self): #Задумка
         pass
@@ -41,8 +52,8 @@ class Repo:
     def get_all(self, name : str): #Задумка (работает) получить все из коллекции
         collection = self.db[name]
         a = collection.find({})
-        for i in a:
-            pprint(i)
+        
+        return a
 
     def get_tasks(self, **kwars): #В отд. файл (еще пишу)
         pass
@@ -60,13 +71,7 @@ class Repo:
         collection.delete_one(t.__dict__)
 
     def exists_in_db(self, tg_uid : int): #Артем попросил (работает) получение пользователя по id
-        result = []
-        collection = self.db["Users"]
-        cursor = collection.find({"tg_uid" : tg_uid})
-        for i in cursor:
-            result.append(i)
-        
-        return(result)
+        return self.users.find_one({"tg_uid" : tg_uid})
 
     def show_boards_assigner(self, tg_uid : int): #Доски по assigner'ам
         result = []
@@ -93,7 +98,3 @@ class Repo:
         for i in cursor:
             result.append(i)
         return(result)
-
-
-b = Repo("localhost", 27017, "Database-bot")
-print(b.get_task_tg_uid(1337))
