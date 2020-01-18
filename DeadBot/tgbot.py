@@ -1,9 +1,17 @@
 import telebot
-import ics
-from ics import event
 from datetime import datetime
 import config
 import dbworker
+import models
+from models import User
+from models import Task
+from models import repo
+from json import loads
+import os
+import webbrowser
+from json import loads
+
+from trello import TrelloApi
 
 bot = telebot.TeleBot(config.token) 
 
@@ -33,18 +41,20 @@ markup3.row('Мои доски', 'Мои задачи','Добавить зад�
 markup4 = telebot.types.ReplyKeyboardMarkup(True)
 markup4.row('Назад', 'Добавить доску')
 
+register_markup = telebot.types.ReplyKeyboardMarkup(True)
+register_markup .row('/register','/register_reset')
+
 @bot.message_handler(commands=["start"])
 def get_text_messages(message):
     messagetext1 = "Привет"
     
     if message.text == "/start":
-         if exists_in_db(int(message.from_user.id)) != None:
-             bot.send_message(message.chat.id, messagetext1, reply_markup=markup1)
+        r = repo.Repo("localhost", 27017, "Database-bot")
+        if r.exists_in_db(int(message.from_user.id)) != None:
+            bot.send_message(message.chat.id, messagetext1, reply_markup=markup1)
+        else:
+            bot.send_message(message.chat.id, "Зарегистрируйтесь", reply_markup=register_markup)
             
-         else:
-             trello_and_add_tg_auth(message)
-             
-
     elif message.text == "Мои доски":
         a = show_boards(int(message.from_user.id))
          #a = [{'_id': ObjectId('5e232c24d7d2efb90d939e8a'), 'cardlistname': 'test Cardlist', 'tasks': {'Name': 'testTask', 'Desc': 'descr', 'Due_date': datetime.datetime(2020, 1, 18, 18, 2, 44, 667000), 'Assigner': 1337, 'Executors': [228], 'Cardlist': []}}, {'_id': ObjectId('5e232c24d7d2efb90d939e8b'), 'cardlistname': 'test Cardlist1', 'tasks': {'Name': 'testTask', 'Desc': 'descr', 'Due_date': datetime.datetime(2020, 1, 18, 18, 2, 44, 667000), 'Assigner': 1337, 'Executors': [228], 'Cardlist': []}}, {'_id': ObjectId('5e232c24d7d2efb90d939e8c'), 'cardlistname': 'test Cardlist2', 'tasks': {'Name': 'testTask', 'Desc': 'descr', 'Due_date': datetime.datetime(2020, 1, 18, 18, 2, 44, 667000), 'Assigner': 1337, 'Executors': [228], 'Cardlist': []}}]
@@ -90,31 +100,39 @@ def get_text_messages(message):
 
 
 
-# Начало создания таска  
+# Начало создания таска 
+task_cr_name = ""
+task_Desc = ""
+task_due_dt = datetime.now()
 @bot.message_handler(commands=["add_task"])
 def add_task(message):
     bot.send_message(message.chat.id, "Введите название задачи")
     dbworker.set_state(message.chat.id, config.CreateTaskStates.S_ENTER_NAME.value)
-@bot.message_handler(commands=["reset"])
+@bot.message_handler(commands=["register_reset"])
 def cmd_reset(message):
     bot.send_message(message.chat.id, "Ещё раз, введите название задания")
     dbworker.set_state(message.chat.id, config.CreateTaskStates.S_ENTER_NAME.value)
 
 @bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.CreateTaskStates.S_ENTER_NAME.value)
 def task_entering_name(message):
+    task_cr_name = message.text
     bot.send_message(message.chat.id, "Введите описание")
     dbworker.set_state(message.chat.id, config.CreateTaskStates.S_ENTER_DESC.value)   
 
 @bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.CreateTaskStates.S_ENTER_DESC.value)
 def task_entering_deadline_date(message):
+        task_Desc = message.text
         bot.send_message(message.chat.id,"Выберите Дату Дедлайна") #подключить календарь либу
         dbworker.set_state(message.chat.id, config.CreateTaskStates.S_ENTER_Due_date.value)
 
 @bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.CreateTaskStates.S_ENTER_Due_date.value)
 def task_entering_end(message):
+        task_due_dt = message.text
+        t = Task.Task(task_cr_name,task_Desc,task_due_dt, message.from_user.id, [],[],datetime.now())
         bot.send_message(message.chat.id,"Задача создана", reply_markup=markup1)
-         
-        #dbworker.set_state(message.chat.id, config.CreateTaskStates.S_ENTER_Due_date.value)
+        r = repo.Repo("localhost", 27017, "Database-bot")
+        r.create(t)
+        dbworker.set_state(message.chat.id, config.CreateTaskStates.S_START.value)
 
 # Создание таска
 @bot.message_handler(commands=["add_task"])
@@ -131,6 +149,39 @@ def cmd_start(message):
         dbworker.set_state(message.chat.id, config.CreateTaskStates.S_ENTER_NAME.value)
 
 
+# регистрация 
+usr_reg_name = ""
+trello_reg_key = ""
+@bot.message_handler(commands=["register"])
+def add_name(message):
+   
+    bot.send_message(message.chat.id, "Введите имя")
+    dbworker.set_state(message.chat.id, config.CreateUserStates.S_ENTER_NAME.value)
+
+@bot.message_handler(commands=["register_reset"])
+def cmd_usr_reset(message):
+  
+    bot.send_message(message.chat.id, "Ещё раз, введите имя")
+    dbworker.set_state(message.chat.id, config.CreateUserStates.S_ENTER_NAME.value)
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.CreateUserStates.S_ENTER_NAME.value)
+def trello_entering(message):
+    name = message.text
+    url = trello_auth("url", name)
+    bot.send_message(message.chat.id, f"Интеграция с Trello, перейдите по ссылке, скопируйте ключ, и вставьте в бота \n {url}")
+    dbworker.set_state(message.chat.id, config.CreateUserStates.S_TRELLO_KEY.value) 
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.CreateUserStates.S_TRELLO_KEY.value)
+def register_end(message):
+        trello_key = message.text
+        trello_auth("set_token", trello_key)
+        #boards
+        u = User.User(usr_reg_name,message.from_user.id,message.chat.id,trello_key )
+        r = repo.Repo("localhost", 27017, "Database-bot")
+        r.create(u)
+        
+        bot.send_message(message.chat.id,"Вы зарегистрированы", reply_markup=markup1)
+        dbworker.set_state(message.chat.id, config.CreateUserStates.S_START.value)
 
 
 
@@ -162,8 +213,32 @@ def no_registered_board_user(message):
 
     return "sdf"
 
-def trello_and_add_tg_auth(message):
-    bot.send_message(message.from_user.id,"...", reply_markup=markup2)
+def trello_auth(action, parameter):
+    with open(os.path.join(os.getcwd(), "config_.json"), "rb") as f:
+        config_ = loads(f.read())
+
+    with open(os.path.join(os.getcwd(), "config.json"), "rb") as f:
+        config = loads(f.read())
+
+    key = config_["trello"]["key"]  # '"093751fd307b96265f8f948a7afb540d"'
+    secret = config_["trello"]["secret"]
+    board_id = config_["trello"]["testBoard"]
+
+    req_url = config["trello"]["requestURL"]
+    acc_url = config["trello"]["accessURL"]
+    auth_url = config["trello"]["authorizeURL"]
+    my_token = config["trello"]["my_token"]
+
+
+    trello = TrelloApi(key)
+
+    # сгенерить ссыль для авторизации
+    my_url = trello.get_token_url("Deadline Bot", expires="30days", write_access=True)
+    if action == "url":
+        return my_url
+    elif action == "set_token":
+        trello.set_token(parameter)
+
 
 def show_boards(a):
     return True       
