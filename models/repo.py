@@ -21,9 +21,9 @@ Example of usage:
 
 class Repo:
     def __init__(
-        self, 
-        link : str, 
-        port: int=27017, 
+        self,
+        link : str,
+        port: int=27017,
         db_name : str="Deadline-bot"): #Пока данные захардкодил, хотя наверное можно подставлять (не проверял)
         self.port = port
         self.client = MongoClient("localhost", port)
