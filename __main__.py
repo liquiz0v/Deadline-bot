@@ -14,13 +14,11 @@ with open(os.path.join(os.getcwd(), "config_.json"), "rb") as f:
 with open(os.path.join(os.getcwd(), "config.json"), "rb") as f:
     config = loads(f.read())
 
-key = config_["trello"]["key"]  # '"093751fd307b96265f8f948a7afb540d"'
+key = "093751fd307b96265f8f948a7afb540d"
 secret = config_["trello"]["secret"]
 board_id = config_["trello"]["testBoard"]
 
-req_url = config["trello"]["requestURL"]
-acc_url = config["trello"]["accessURL"]
-auth_url = config["trello"]["authorizeURL"]
+
 my_token = config["trello"]["my_token"]
 
 

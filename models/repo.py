@@ -1,10 +1,10 @@
 from pymongo import MongoClient
 from pprint import pprint
 import datetime
-from Task import Task
-from User import User
-from Cardlist import Cardlist
-from GetList import ListGen
+from .Task import Task
+from .User import User
+from .Cardlist import Cardlist
+from .GetList import ListGen
 
 """
 Pymongo-repo
@@ -42,6 +42,12 @@ class Repo:
 
     def add_user(self, user: User):
         self.users.insert_one(user.__dict__)
+    
+    def add_task(self, task: Task):
+        self.tasks.insert_one(task.__dict__)
+
+    #def add_cardlist(self, cardlist: Cardlist):
+    #    self.cardlist.insert_one(user.__dict__)
 
     def update(self): #Задумка
         pass

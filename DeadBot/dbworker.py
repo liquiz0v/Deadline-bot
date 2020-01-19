@@ -1,5 +1,5 @@
 import vedis
-import config
+from . import config
 
 def get_current_state(user_id):
     with vedis.Vedis(config.db_file) as db:

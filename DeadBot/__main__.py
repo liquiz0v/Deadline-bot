@@ -81,26 +81,34 @@ def get_boards(message):
     #db
 @bot.message_handler(commands=["my_tasks"])
 def get_tasks(message):
-    if True:
+    test_data = [{'_id': '5e2479892f43a9c99be960f5', 'Name': 'test1', 'Desc': 'test', 'Start_time': None, 'Due_date': datetime(2020, 1, 19, 17, 45, 13, 86000), 'Assigner': 123, 'Executors': [123], 'Cardlist': [123]},
+            {'_id': '5e2479892f43a9c99be960f5', 'Name': 'test2', 'Desc': 'test', 'Start_time': None, 'Due_date': datetime(2020, 1, 19, 17, 45, 13, 86000), 'Assigner': 123, 'Executors': [123], 'Cardlist': [123]},
+            {'_id': '5e2479892f43a9c99be960f5', 'Name': 'test3', 'Desc': 'test', 'Start_time': None, 'Due_date': datetime(2020, 1, 19, 17, 45, 13, 86000), 'Assigner': 123, 'Executors': [123], 'Cardlist': [123]},
+            {'_id': '5e2479892f43a9c99be960f5', 'Name': 'test4', 'Desc': 'test', 'Start_time': None, 'Due_date': datetime(2020, 1, 19, 17, 45, 13, 86000), 'Assigner': 123, 'Executors': [123], 'Cardlist': [123]}]
+        
+    if test_data != None:
         #show_tasks(int(message.from_user.id))
         
-        Desc = "description"
-        #[#######....]
-        deadline = datetime(2020, 2, 10, 4, 30)
-        starttime  = datetime(2020, 1, 10, 4, 30) #базу поменять
-        now = datetime.now()
-        a = ((now - starttime)/(deadline-starttime))*10
+        for i in range(len(test_data)):
+            Name = test_data[i]['Name']
+            starttime = test_data[i]['Start_time']
+            deadline = test_data[i]['Due_date']
+            #[#######....]
+            #deadline = datetime(2020, 2, 10, 4, 30)
+            starttime  = datetime(2020, 1, 10, 4, 30) #базу поменять
+            now = datetime.now()
+            a = ((now - starttime)/(deadline-starttime))*10
         
-        graphtime = "[_ _ _ _ _ _ _ _ _ _]"
-        c = list(graphtime)
-        for i in range(round(a)):
-            print(round(a))
-            c[i+1] = "##"
-        graphtime = ''.join(c)  
-        graphtime = f"{Desc} \n {graphtime}"
-        bot.send_message(message.from_user.id, graphtime, reply_markup=markup2)
-        #deadline = datetime.strptime("22/05/2017 12:30", "%d/%m/%Y %H:%M")
-
+            graphtime = "[_ _ _ _ _ _ _ _ _ _]"
+            c = list(graphtime)
+            for i in range(round(a)):
+                c[i+1] = "##"
+            graphtime = ''.join(c)  
+            graphtime = f"{Name} \n {graphtime}"
+            bot.send_message(message.from_user.id, graphtime, reply_markup=markup2)
+            #deadline = datetime.strptime("22/05/2017 12:30", "%d/%m/%Y %H:%M")
+    else:
+        bot.send_message(message.from_user.id, "у вас нет задач, создайте новую", reply_markup=markup2)    
 
 # Начало создания таска 
 task_cr_name = ""
