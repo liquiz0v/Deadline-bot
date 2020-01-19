@@ -26,6 +26,7 @@ class Repo:
         link : str = "localhost", 
         port: int = 27017, 
         db_name : str = "Deadline-bot"): 
+
         self.port = port
         self.client = MongoClient("localhost", port)
 
@@ -40,6 +41,12 @@ class Repo:
 
     def add_user(self, user: User):
         self.users.insert_one(user.__dict__)
+    
+    def add_task(self, task: Task):
+        self.tasks.insert_one(task.__dict__)
+
+    #def add_cardlist(self, cardlist: Cardlist):
+    #    self.cardlist.insert_one(user.__dict__)
 
     def add_cardlist(self, cardlist : Cardlist):
         self.card_lists.insert_one(cardlist.__dict__)

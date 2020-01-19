@@ -13,3 +13,4 @@ class User:
         self.tg_uid = tg_uid
         self.tg_chatid = tg_chatid
         self.boards = boards
+        self.trello_key = trello_key 
