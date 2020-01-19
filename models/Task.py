@@ -9,7 +9,7 @@ class Task:
         Assigner : int, 
         Executors : list, 
         Cardlist : list,
-        Start_time: datetime=None
+        Start_time: datetime = None
         ):
         self.Name = Name
         self.Desc = Desc

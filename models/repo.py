@@ -1,10 +1,11 @@
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 from pprint import pprint
 import datetime
-from Task import Task
-from User import User
-from Cardlist import Cardlist
-from GetList import ListGen
+from .Task import Task
+from .User import User
+from .Cardlist import Cardlist
+from .GetList import ListGen
 
 """
 Pymongo-repo
@@ -22,9 +23,9 @@ Example of usage:
 class Repo:
     def __init__(
         self, 
-        link : str, 
-        port: int=27017, 
-        db_name : str="Deadline-bot"): #Пока данные захардкодил, хотя наверное можно подставлять (не проверял)
+        link : str = "localhost", 
+        port: int = 27017, 
+        db_name : str = "Deadline-bot"): 
         self.port = port
         self.client = MongoClient("localhost", port)
 
@@ -34,49 +35,36 @@ class Repo:
         self.card_lists = self.db["Cardlists"]
 
 
-    def create(self, u : object): #Нужно как то переделать (работает) создает любой обьект в базе
-        arg1 = str(u).find("<")
-        arg2 = str(u).find(".")
-        collection = self.db[str(u)[arg1 + 1:arg2] + "s"]
-        collection.insert_one(u.__dict__)
+    def add_task(self, task : Task):
+        self.tasks.insert_one(task.__dict__) 
 
     def add_user(self, user: User):
         self.users.insert_one(user.__dict__)
 
-    def update(self): #Задумка
-        pass
+    def add_cardlist(self, cardlist : Cardlist):
+        self.card_lists.insert_one(cardlist.__dict__)
 
-    def delete(self): #Задумка
-        pass
+    def get_all(self, name : str): #(работает) получить все из коллекции
+        return self.db[name].find({})
 
-    def get_all(self, name : str): #Задумка (работает) получить все из коллекции
-        collection = self.db[name]
-        a = collection.find({})
-        
-        return a
-
-    def get_tasks(self, **kwars): #В отд. файл (еще пишу)
-        pass
+    def get_task(self, task_id : ObjectId):
+        return(self.tasks.find_one({"_id" : task_id}))
     
     def get_one(self, coll_name : str, query : dict, u : object = None): #Мб отредачить (работает) получить один обьект по коллекции по запросу (query)
-        collection = self.db[coll_name]
-        return(collection.find_one(query))
+        return(self.db[coll_name].find_one(query))
 
-    def update_task(self, Name : str, t : Task): #Обновляет таск по названию, заменяет на модель (Мб нужно переделать)
-        collection = self.db["Tasks"]
-        collection.update_one({"Taskname" : Name}, {"$set" : t.__dict__})
+    def update_task(self, Name : str, t : Task): #Обновляет таск по названию, заменяет на модель 
+        self.db["Tasks"].update_one({"Taskname" : Name}, {"$set" : t.__dict__})
 
-    def delete_task(self, t : Task): #Удаляет таск по модели (мб нужно переделать)    
-        collection = self.db["Tasks"]
-        collection.delete_one(t.__dict__)
+    def delete_task(self, t : Task): #Удаляет таск по модели    
+        self.db["Tasks"].delete_one(t.__dict__)
 
     def exists_in_db(self, tg_uid : int): #Артем попросил (работает) получение пользователя по id
         return self.users.find_one({"tg_uid" : tg_uid})
 
     def show_boards_assigner(self, tg_uid : int): #Доски по assigner'ам
         result = []
-        collection = self.db["Cardlists"]
-        cursor = collection.find({"tasks.Assigner" : tg_uid})
+        cursor = self.db["Cardlists"].find({"tasks.Assigner" : tg_uid})
         for i in cursor:
             result.append(i)
         
@@ -84,8 +72,7 @@ class Repo:
 
     def show_boards_executor(self, tg_uid : int): #Доски по исполнителям
         result = []
-        collection = self.db["Cardlists"]
-        cursor = collection.find({"tasks.Executors" : tg_uid})
+        cursor = self.db["Cardlists"].find({"tasks.Executors" : tg_uid})
         for i in cursor:
             result.append(i)
         
@@ -93,8 +80,7 @@ class Repo:
 
     def get_task_tg_uid(self, tg_uid : int): #Таски по assigner'ам
         result = []
-        collection = self.db["Tasks"]
-        cursor = collection.find({"Assigner" : tg_uid})
+        cursor = self.db["Tasks"].find({"Assigner" : tg_uid})
         for i in cursor:
             result.append(i)
         return(result)
